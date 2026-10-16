@@ -1,0 +1,23 @@
+## Build products
+.build/
+DerivedData/
+build/
+*.xcresult
+
+## Xcode user state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+## Swift Package Manager
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+.netrc
+
+## Real world sample documents used for manual conversion checks.
+## These are usually copyrighted or confidential, so only the README is tracked.
+Samples/*
+!Samples/README.md
+
+## macOS
+.DS_Store
