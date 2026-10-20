@@ -32,6 +32,10 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
     /// pages are concatenated, and they interrupt the surrounding prose.
     public var stripRepeatedPageFurniture: Bool
 
+    /// Extract pictures, drawings and charts as PNG images referenced from the
+    /// Markdown output.
+    public var extractGraphics: Bool
+
     /// The default option set used when the caller expresses no preference.
     public static let `default` = ConversionOptions()
 
@@ -41,7 +45,8 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         insertPageBreaks: Bool = false,
         experimentalTableExtraction: Bool = false,
         normalizeWhitespace: Bool = true,
-        stripRepeatedPageFurniture: Bool = true
+        stripRepeatedPageFurniture: Bool = true,
+        extractGraphics: Bool = true
     ) {
         self.detectHeadings = detectHeadings
         self.detectLists = detectLists
@@ -49,5 +54,6 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         self.experimentalTableExtraction = experimentalTableExtraction
         self.normalizeWhitespace = normalizeWhitespace
         self.stripRepeatedPageFurniture = stripRepeatedPageFurniture
+        self.extractGraphics = extractGraphics
     }
 }

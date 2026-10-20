@@ -75,6 +75,12 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
     )
     var keepPageFurniture = false
 
+    @Flag(
+        name: .long,
+        help: "Do not extract pictures, drawings and charts as image files."
+    )
+    var noGraphics = false
+
     @Flag(name: [.customShort("q"), .long], help: "Suppress progress messages.")
     var quiet = false
 
@@ -140,27 +146,34 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
         switch destination {
         case .standardOutput:
             StandardStream.outRaw(result.markdown)
+            if !result.assets.isEmpty && !quiet {
+                StandardStream.error(
+                    "makeit-markdown: \(url.lastPathComponent): warning: images are not saved when writing "
+                        + "to standard output; use --no-graphics to omit image references."
+                )
+            }
 
         case .file(let fileURL):
-            try write(result.markdown, to: fileURL, source: url)
+            try write(result, to: fileURL, source: url)
 
         case .directory(let directoryURL):
             try write(
-                result.markdown,
+                result,
                 to: directoryURL.appending(path: result.suggestedFileName),
                 source: url
             )
 
         case .alongsideSource:
             try write(
-                result.markdown,
+                result,
                 to: url.deletingPathExtension().appendingPathExtension("md"),
                 source: url
             )
         }
     }
 
-    private func write(_ markdown: String, to url: URL, source: URL) throws {
+    private func write(_ result: ConversionResult, to url: URL, source: URL) throws {
+        let markdown = result.markdown
         let path = url.path(percentEncoded: false)
 
         if FileManager.default.fileExists(atPath: path) && !overwrite {
@@ -176,6 +189,14 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
             throw ConversionError.outputWriteFailed(url: url, reason: error.localizedDescription)
         }
 
+        do {
+            for asset in result.assets {
+                try asset.write(relativeTo: url.deletingLastPathComponent())
+            }
+        } catch {
+            throw ConversionError.outputWriteFailed(url: url, reason: error.localizedDescription)
+        }
+
         if !quiet {
             StandardStream.error("Converted \(source.lastPathComponent) to \(path)")
         }
@@ -187,7 +208,8 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
     var conversionOptions: ConversionOptions {
         ConversionOptions(
             experimentalTableExtraction: experimentalTables,
-            stripRepeatedPageFurniture: !keepPageFurniture
+            stripRepeatedPageFurniture: !keepPageFurniture,
+            extractGraphics: !noGraphics
         )
     }
 

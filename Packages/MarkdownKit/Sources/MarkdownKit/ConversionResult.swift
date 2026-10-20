@@ -26,6 +26,30 @@ public struct ConversionWarning: Sendable, Equatable, Codable {
     }
 }
 
+/// A file referenced by the generated Markdown, such as an extracted image.
+public struct ConversionAsset: Sendable, Equatable {
+
+    /// Path relative to the directory containing the Markdown file.
+    public let relativePath: String
+
+    public let data: Data
+
+    public init(relativePath: String, data: Data) {
+        self.relativePath = relativePath
+        self.data = data
+    }
+
+    /// Writes the asset beneath `directory`, creating folders as needed.
+    public func write(relativeTo directory: URL) throws {
+        let destination = directory.appending(path: relativePath)
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: destination, options: .atomic)
+    }
+}
+
 /// The product of a successful document conversion.
 public struct ConversionResult: Sendable, Equatable {
 
@@ -41,16 +65,21 @@ public struct ConversionResult: Sendable, Equatable {
     /// Non-fatal issues encountered during conversion.
     public let warnings: [ConversionWarning]
 
+    /// Files referenced by `markdown`, which must be saved beside it.
+    public let assets: [ConversionAsset]
+
     public init(
         markdown: String,
         sourceURL: URL,
         pageCount: Int? = nil,
-        warnings: [ConversionWarning] = []
+        warnings: [ConversionWarning] = [],
+        assets: [ConversionAsset] = []
     ) {
         self.markdown = markdown
         self.sourceURL = sourceURL
         self.pageCount = pageCount
         self.warnings = warnings
+        self.assets = assets
     }
 
     /// A conventional output file name derived from the source document.

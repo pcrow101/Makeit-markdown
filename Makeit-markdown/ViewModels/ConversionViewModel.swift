@@ -253,6 +253,9 @@ final class ConversionViewModel {
             let destination = directory.appending(path: job.suggestedFileName)
             do {
                 try markdown.write(to: destination, atomically: true, encoding: .utf8)
+                for asset in job.result?.assets ?? [] {
+                    try asset.write(relativeTo: directory)
+                }
                 written += 1
             } catch {
                 failures.append(job.displayName)

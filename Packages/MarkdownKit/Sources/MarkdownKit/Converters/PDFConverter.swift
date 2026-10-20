@@ -32,6 +32,111 @@ public struct PDFConverter: DocumentConverter {
             throw ConversionError.passwordProtected(url: url)
         }
 
+        var warnings = Self.openingWarnings(for: document, options: options)
+
+        let analyzer = DocumentStructureAnalyzer(options: options)
+        var pageElements: [[PDFPageScanner.Element]] = []
+        var emptyPageNumbers: [Int] = []
+        var pageFigures: [[Figure]] = []
+        var assets: [ConversionAsset] = []
+        var continuation: RuledTableContinuation?
+
+        let stem = url.deletingPathExtension().lastPathComponent
+        let assetFolder = "\(stem)_images"
+
+        for index in 0..<document.pageCount {
+            try Task.checkCancellation()
+
+            guard let page = document.page(at: index) else { continue }
+
+            let elements = Self.elements(on: page, options: options, continuation: &continuation)
+
+            let figures = options.extractGraphics
+                ? Self.figures(on: page, pageNumber: index + 1, folder: assetFolder, assets: &assets)
+                : []
+
+            if elements.isEmpty && figures.isEmpty {
+                emptyPageNumbers.append(index + 1)
+            }
+            pageElements.append(elements)
+            pageFigures.append(figures)
+        }
+
+        // Running headers and footers are only detectable once every page has
+        // been read, so stripping happens after extraction and before analysis.
+        if options.stripRepeatedPageFurniture {
+            pageElements = Self.stripPageFurniture(from: pageElements)
+        }
+
+        let pages = zip(pageElements, pageFigures).map {
+            Self.blocks(for: $0, figures: $1, analyzer: analyzer)
+        }
+
+        if !emptyPageNumbers.isEmpty {
+            warnings.append(Self.emptyPageWarning(for: emptyPageNumbers, pageCount: document.pageCount))
+        }
+
+        let markdown = MarkdownRenderer(options: options).render(pages: pages)
+
+        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ConversionError.noExtractableText(url: url)
+        }
+
+        return ConversionResult(
+            markdown: markdown,
+            sourceURL: url,
+            pageCount: document.pageCount,
+            warnings: warnings,
+            assets: assets
+        )
+    }
+
+    /// A graphic placed on a page, positioned by its top edge.
+    private struct Figure {
+        var top: Double
+        var block: DocumentBlock
+    }
+
+    /// Reads the text and tables of `page`.
+    ///
+    /// Scanning recovers page geometry, which is what makes tables
+    /// recoverable. A ruled table is evidence enough to scan, but tables
+    /// inferred from text alignment stay behind the experimental option so that
+    /// ordinary conversions keep their established behaviour.
+    private static func elements(
+        on page: PDFPage,
+        options: ConversionOptions,
+        continuation: inout RuledTableContinuation?
+    ) -> [PDFPageScanner.Element] {
+        let ownGrids = PDFRuledTable.grids(on: page)
+        let grids = ownGrids.isEmpty ? (continuation.map { [$0.grid] } ?? []) : ownGrids
+
+        guard options.experimentalTableExtraction || !grids.isEmpty else {
+            return textLines(in: page).map { .line($0) }
+        }
+
+        var elements = PDFPageScanner.scan(
+            page: page,
+            grids: grids,
+            detectAlignedTables: options.experimentalTableExtraction
+        )
+        if ownGrids.isEmpty, let continuation {
+            elements = continuation.completing(elements)
+        }
+
+        continuation = RuledTableContinuation.after(
+            elements: elements,
+            ownGrid: ownGrids.last,
+            previous: continuation,
+            pageRect: page.bounds(for: .cropBox)
+        )
+        return elements
+    }
+
+    private static func openingWarnings(
+        for document: PDFDocument,
+        options: ConversionOptions
+    ) -> [ConversionWarning] {
         var warnings: [ConversionWarning] = []
 
         if document.isEncrypted {
@@ -51,53 +156,34 @@ public struct PDFConverter: DocumentConverter {
                 )
             )
         }
+        return warnings
+    }
 
-        let analyzer = DocumentStructureAnalyzer(options: options)
-        var pageElements: [[PDFPageScanner.Element]] = []
-        var emptyPageNumbers: [Int] = []
+    /// Renders the graphics on `page`, appending their files to `assets`.
+    private static func figures(
+        on page: PDFPage,
+        pageNumber: Int,
+        folder: String,
+        assets: inout [ConversionAsset]
+    ) -> [Figure] {
+        let encodedFolder = folder.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? folder
+        var figures: [Figure] = []
 
-        for index in 0..<document.pageCount {
-            try Task.checkCancellation()
-
-            guard let page = document.page(at: index) else { continue }
-
-            // Scanning recovers page geometry, which is what makes tables
-            // recoverable. It is only used when tables are requested, so that
-            // ordinary conversions keep their established behaviour.
-            let elements: [PDFPageScanner.Element] = options.experimentalTableExtraction
-                ? PDFPageScanner.scan(page: page)
-                : Self.textLines(in: page).map { .line($0) }
-
-            if elements.isEmpty {
-                emptyPageNumbers.append(index + 1)
-            }
-            pageElements.append(elements)
+        for (offset, region) in PDFGraphicsExtractor.regions(on: page).enumerated() {
+            guard let data = PDFGraphicsExtractor.renderPNG(of: region, on: page) else { continue }
+            let name = "page-\(pageNumber)-figure-\(offset + 1).png"
+            assets.append(ConversionAsset(relativePath: "\(folder)/\(name)", data: data))
+            figures.append(
+                Figure(
+                    top: Double(region.rect.maxY),
+                    block: .image(
+                        path: "\(encodedFolder)/\(name)",
+                        altText: "Figure \(offset + 1) (page \(pageNumber))"
+                    )
+                )
+            )
         }
-
-        // Running headers and footers are only detectable once every page has
-        // been read, so stripping happens after extraction and before analysis.
-        if options.stripRepeatedPageFurniture {
-            pageElements = Self.stripPageFurniture(from: pageElements)
-        }
-
-        let pages = pageElements.map { Self.blocks(for: $0, analyzer: analyzer) }
-
-        if !emptyPageNumbers.isEmpty {
-            warnings.append(Self.emptyPageWarning(for: emptyPageNumbers, pageCount: document.pageCount))
-        }
-
-        let markdown = MarkdownRenderer(options: options).render(pages: pages)
-
-        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw ConversionError.noExtractableText(url: url)
-        }
-
-        return ConversionResult(
-            markdown: markdown,
-            sourceURL: url,
-            pageCount: document.pageCount,
-            warnings: warnings
-        )
+        return figures
     }
 
     // MARK: - Page assembly
@@ -109,20 +195,36 @@ public struct PDFConverter: DocumentConverter {
     /// a page with no tables.
     private static func blocks(
         for elements: [PDFPageScanner.Element],
+        figures: [Figure],
         analyzer: DocumentStructureAnalyzer
     ) -> [DocumentBlock] {
         var blocks: [DocumentBlock] = []
         var pending: [TextLine] = []
+        let pageLines = elements.compactMap { element -> TextLine? in
+            if case .line(let line) = element { return line }
+            return nil
+        }
+        let bodyFontSize = pageLines.isEmpty ? nil : DocumentStructureAnalyzer.modalFontSize(of: pageLines)
+        var remainingFigures = figures.sorted { $0.top > $1.top }[...]
 
         func flush() {
             guard !pending.isEmpty else { return }
-            blocks.append(contentsOf: analyzer.analyze(lines: pending))
+            blocks.append(contentsOf: analyzer.analyze(lines: pending, bodyFontSize: bodyFontSize))
             pending.removeAll(keepingCapacity: true)
         }
 
         for element in elements {
             switch element {
             case .line(let line):
+                // Figures are placed before the first line that sits below
+                // their top edge, which keeps them in reading order.
+                if let top = line.top {
+                    while let figure = remainingFigures.first, figure.top >= top {
+                        flush()
+                        blocks.append(figure.block)
+                        remainingFigures = remainingFigures.dropFirst()
+                    }
+                }
                 pending.append(line)
             case .table(let rows):
                 flush()
@@ -131,6 +233,7 @@ public struct PDFConverter: DocumentConverter {
         }
 
         flush()
+        blocks.append(contentsOf: remainingFigures.map(\.block))
         return blocks
     }
 
@@ -183,14 +286,15 @@ public struct PDFConverter: DocumentConverter {
 
             let nsRange = NSRange(range, in: fullText)
             let style = Self.dominantStyle(in: attributed, range: nsRange)
-            let indent = Self.indent(of: nsRange, on: page)
+            let bounds = Self.firstGlyphBounds(of: nsRange, on: page)
 
             lines.append(
                 TextLine(
                     text: Self.sanitize(substring),
                     fontSize: style.pointSize,
                     isBold: style.isBold,
-                    indent: indent
+                    indent: bounds.map { Double($0.minX) } ?? 0,
+                    top: bounds.map { Double($0.maxY) }
                 )
             )
         }
@@ -234,14 +338,14 @@ public struct PDFConverter: DocumentConverter {
         }?.key ?? FontStyle(pointSize: 12, isBold: false)
     }
 
-    /// The horizontal offset of the first glyph of `range` on the page.
-    private static func indent(of range: NSRange, on page: PDFPage) -> Double {
+    /// The bounds of the first glyph of `range` on the page.
+    private static func firstGlyphBounds(of range: NSRange, on page: PDFPage) -> CGRect? {
         guard range.length > 0,
               let selection = page.selection(for: NSRange(location: range.location, length: 1)) else {
-            return 0
+            return nil
         }
         let bounds = selection.bounds(for: page)
-        return bounds.isNull || bounds.isInfinite ? 0 : Double(bounds.minX)
+        return bounds.isNull || bounds.isInfinite ? nil : bounds
     }
 
     /// Removes artefacts that commonly survive PDF text extraction.

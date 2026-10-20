@@ -42,8 +42,12 @@ extension PDFPageScanner {
     /// A line split into several pieces is the evidence that a table is
     /// present. Lines that were not split are allowed inside a run, because a
     /// cell whose text has wrapped produces one.
-    static func candidateRegions(in bands: [Band]) -> [ClosedRange<Int>] {
+    ///
+    /// A heading ends a run, because a table never contains one. It is a line
+    /// made of a single piece set noticeably larger than `bodyFontSize`.
+    static func candidateRegions(in bands: [Band], bodyFontSize: Double = 0) -> [ClosedRange<Int>] {
         let isMulti = bands.map { $0.fragments.count >= minimumColumns }
+        let isHeading = bands.map { isHeadingBand($0, bodyFontSize: bodyFontSize) }
         var regions: [ClosedRange<Int>] = []
         var index = 0
 
@@ -59,6 +63,7 @@ extension PDFPageScanner {
             var runOfSingles = 0
 
             while probe < bands.count {
+                if isHeading[probe] { break }
                 if isMulti[probe] {
                     multiCount += 1
                     end = probe
@@ -78,6 +83,15 @@ extension PDFPageScanner {
 
         return regions
     }
+
+    /// Whether `band` is a lone line set larger than the body text.
+    static func isHeadingBand(_ band: Band, bodyFontSize: Double) -> Bool {
+        guard bodyFontSize > 0, band.fragments.count == 1, let fragment = band.fragments.first else {
+            return false
+        }
+        return fragment.fontSize >= bodyFontSize * headingFontRatio
+    }
+
     // MARK: - Columns
 
     /// The x positions shared by enough lines to be treated as table columns.
@@ -279,5 +293,51 @@ extension PDFPageScanner {
 
         guard occupied.count != width else { return rows }
         return rows.map { row in occupied.map { $0 < row.count ? row[$0] : "" } }
+    }
+
+    /// Finds tables from the alignment of text and reports everything else as lines.
+    static func alignedElements(
+        for bands: [Band],
+        glyphHeight: CGFloat,
+        minimumIndent: CGFloat
+    ) -> [Element] {
+        let sizes = bands.flatMap(\.fragments).map(\.fontSize).sorted()
+        let bodyFontSize = sizes.isEmpty ? 0 : sizes[sizes.count / 2]
+        let regions = candidateRegions(in: bands, bodyFontSize: bodyFontSize)
+
+        var elements: [Element] = []
+        var cursor = 0
+
+        for region in regions {
+            while cursor < region.lowerBound {
+                elements.append(.line(textLine(for: bands[cursor], minimumIndent: minimumIndent)))
+                cursor += 1
+            }
+
+            // Columns are measured inside the region. Gathering them across the
+            // whole page would merge the columns of unrelated tables, leaving
+            // every table padded with the others' columns.
+            let slice = bands[region]
+            let anchors = columnAnchors(in: Array(slice), glyphHeight: glyphHeight)
+            let rows = anchors.count >= minimumColumns
+                ? tableRows(in: slice, anchors: anchors, glyphHeight: glyphHeight)
+                : []
+
+            if isTable(rows) {
+                elements.append(.table(rows: rows))
+            } else {
+                for band in slice {
+                    elements.append(.line(textLine(for: band, minimumIndent: minimumIndent)))
+                }
+            }
+            cursor = region.upperBound + 1
+        }
+
+        while cursor < bands.count {
+            elements.append(.line(textLine(for: bands[cursor], minimumIndent: minimumIndent)))
+            cursor += 1
+        }
+
+        return elements
     }
 }

@@ -74,57 +74,65 @@ struct PDFPageScanner {
     /// ended. A wrapped cell produces one or two.
     static let maximumWrappedLines = 3
 
+    /// How much larger than body text a lone line must be to count as a heading.
+    static let headingFontRatio = 1.2
+
     /// The share of cells that must hold text for a grid to be a table.
     static let minimumFillRatio = 0.5
 
     // MARK: - Scanning
 
     /// Reads `page`, reporting tabular regions separately from ordinary lines.
-    static func scan(page: PDFPage) -> [Element] {
+    ///
+    /// - Parameters:
+    ///   - grids: Ruled tables found on the page, from top to bottom. They are
+    ///     trusted over text alignment.
+    ///   - detectAlignedTables: Whether to also look for tables from the
+    ///     alignment of text alone, which is experimental.
+    static func scan(
+        page: PDFPage,
+        grids: [RuledTableGrid] = [],
+        detectAlignedTables: Bool = true
+    ) -> [Element] {
         let fragments = fragments(on: page)
         guard !fragments.isEmpty else { return [] }
 
         let glyphHeight = median(fragments.map(\.rect.height))
         guard glyphHeight > 0 else { return [] }
 
+        let context = ScanContext(
+            glyphHeight: glyphHeight,
+            bodyFontSize: median(fragments.map { CGFloat($0.fontSize) }).native,
+            minimumIndent: fragments.map(\.rect.minX).min() ?? 0,
+            pageRect: page.bounds(for: .cropBox),
+            detectAlignedTables: detectAlignedTables
+        )
         let bands = bands(from: fragments, glyphHeight: glyphHeight)
-        let minimumIndent = fragments.map(\.rect.minX).min() ?? 0
-        let regions = candidateRegions(in: bands)
 
-        var elements: [Element] = []
-        var cursor = 0
+        return grids.isEmpty
+            ? plainElements(for: bands[...], context: context)
+            : ruledElements(bands: bands, grids: grids, context: context)
+    }
 
-        for region in regions {
-            while cursor < region.lowerBound {
-                elements.append(.line(textLine(for: bands[cursor], minimumIndent: minimumIndent)))
-                cursor += 1
-            }
+    /// Measurements shared by every step of scanning one page.
+    struct ScanContext {
+        var glyphHeight: CGFloat
+        var bodyFontSize: Double
+        var minimumIndent: CGFloat
+        var pageRect: CGRect
+        var detectAlignedTables: Bool
+    }
 
-            // Columns are measured inside the region. Gathering them across the
-            // whole page would merge the columns of unrelated tables, leaving
-            // every table padded with the others' columns.
-            let slice = bands[region]
-            let anchors = columnAnchors(in: Array(slice), glyphHeight: glyphHeight)
-            let rows = anchors.count >= minimumColumns
-                ? tableRows(in: slice, anchors: anchors, glyphHeight: glyphHeight)
-                : []
-
-            if isTable(rows) {
-                elements.append(.table(rows: rows))
-            } else {
-                for band in slice {
-                    elements.append(.line(textLine(for: band, minimumIndent: minimumIndent)))
-                }
-            }
-            cursor = region.upperBound + 1
+    /// Lines, plus tables recovered from text alignment when that is enabled.
+    static func plainElements(for slice: ArraySlice<Band>, context: ScanContext) -> [Element] {
+        guard context.detectAlignedTables else {
+            return slice.map { .line(textLine(for: $0, minimumIndent: context.minimumIndent)) }
         }
-
-        while cursor < bands.count {
-            elements.append(.line(textLine(for: bands[cursor], minimumIndent: minimumIndent)))
-            cursor += 1
-        }
-
-        return elements
+        return alignedElements(
+            for: Array(slice),
+            glyphHeight: context.glyphHeight,
+            minimumIndent: context.minimumIndent
+        )
     }
 
     // MARK: - Fragments
@@ -339,7 +347,7 @@ struct PDFPageScanner {
     }
 
     /// Renders a band as a single line of text for the structural analyser.
-    private static func textLine(for band: Band, minimumIndent: CGFloat) -> TextLine {
+    static func textLine(for band: Band, minimumIndent: CGFloat) -> TextLine {
         let ordered = band.fragments.sorted { $0.rect.minX < $1.rect.minX }
         let dominant = ordered.max { $0.text.count < $1.text.count } ?? ordered[0]
 
@@ -347,7 +355,8 @@ struct PDFPageScanner {
             text: ordered.map(\.text).joined(separator: " "),
             fontSize: dominant.fontSize,
             isBold: dominant.isBold,
-            indent: Double((ordered.first?.rect.minX ?? minimumIndent) - minimumIndent)
+            indent: Double((ordered.first?.rect.minX ?? minimumIndent) - minimumIndent),
+            top: ordered.map { Double($0.rect.maxY) }.max()
         )
     }
 
