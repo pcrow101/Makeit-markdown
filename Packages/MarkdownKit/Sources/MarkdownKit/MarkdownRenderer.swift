@@ -63,6 +63,12 @@ public struct MarkdownRenderer: Sendable {
                 }
                 pendingItems.append(text)
 
+            case .image(let path, let altText):
+                flushList()
+                let alt = altText.replacingOccurrences(of: "[", with: "(")
+                    .replacingOccurrences(of: "]", with: ")")
+                builder.addRawBlock("![\(alt)](\(path))")
+
             case .table(let rows):
                 flushList()
                 guard let headers = rows.first else { continue }

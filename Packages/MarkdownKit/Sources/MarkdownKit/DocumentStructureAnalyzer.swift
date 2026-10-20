@@ -19,11 +19,21 @@ public struct TextLine: Sendable, Equatable {
     /// The horizontal offset of the line from the left edge of the page.
     public var indent: Double
 
-    public init(text: String, fontSize: Double = 12, isBold: Bool = false, indent: Double = 0) {
+    /// The top edge of the line in page space (larger is higher), when known.
+    public var top: Double?
+
+    public init(
+        text: String,
+        fontSize: Double = 12,
+        isBold: Bool = false,
+        indent: Double = 0,
+        top: Double? = nil
+    ) {
         self.text = text
         self.fontSize = fontSize
         self.isBold = isBold
         self.indent = indent
+        self.top = top
     }
 }
 
@@ -38,6 +48,11 @@ public enum DocumentBlock: Sendable, Equatable {
     /// The first row is treated as the header, because Markdown tables require
     /// one. `rows` is always rectangular.
     case table(rows: [[String]])
+
+    /// A picture, drawing or chart saved as an image file.
+    ///
+    /// `path` is the Markdown-ready (percent-encoded) relative path.
+    case image(path: String, altText: String)
 }
 
 /// Recovers document structure from positioned text lines.
@@ -55,10 +70,19 @@ public struct DocumentStructureAnalyzer: Sendable {
 
     /// Groups `lines` into structural blocks.
     public func analyze(lines: [TextLine]) -> [DocumentBlock] {
+        analyze(lines: lines, bodyFontSize: nil)
+    }
+
+    /// Groups `lines` into structural blocks.
+    ///
+    /// - Parameter bodyFontSize: The body text size of the surrounding page.
+    ///   A short run of lines between two tables may hold nothing but a
+    ///   heading, which would otherwise be mistaken for body text.
+    func analyze(lines: [TextLine], bodyFontSize suppliedBodySize: Double?) -> [DocumentBlock] {
         let meaningful = lines.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
         guard !meaningful.isEmpty else { return [] }
 
-        let bodyFontSize = Self.modalFontSize(of: meaningful)
+        let bodyFontSize = suppliedBodySize ?? Self.modalFontSize(of: meaningful)
         let minimumIndent = meaningful.map(\.indent).min() ?? 0
 
         var blocks: [DocumentBlock] = []
@@ -134,7 +158,7 @@ public struct DocumentStructureAnalyzer: Sendable {
     }
 
     /// The font size shared by the greatest number of lines, treated as body text.
-    private static func modalFontSize(of lines: [TextLine]) -> Double {
+    static func modalFontSize(of lines: [TextLine]) -> Double {
         var histogram: [Double: Int] = [:]
         for line in lines {
             // Bucket to a tenth of a point to tolerate sub-pixel variation.

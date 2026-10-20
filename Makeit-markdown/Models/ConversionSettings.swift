@@ -18,6 +18,7 @@ final class ConversionSettings {
         static let experimentalTableExtraction = "conversion.experimentalTableExtraction"
         static let normalizeWhitespace = "conversion.normalizeWhitespace"
         static let stripRepeatedPageFurniture = "conversion.stripRepeatedPageFurniture"
+        static let extractGraphics = "conversion.extractGraphics"
     }
 
     private let defaults: UserDefaults
@@ -48,6 +49,10 @@ final class ConversionSettings {
         }
     }
 
+    var extractGraphics: Bool {
+        didSet { defaults.set(extractGraphics, forKey: Key.extractGraphics) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
@@ -58,7 +63,8 @@ final class ConversionSettings {
             Key.insertPageBreaks: fallback.insertPageBreaks,
             Key.experimentalTableExtraction: fallback.experimentalTableExtraction,
             Key.normalizeWhitespace: fallback.normalizeWhitespace,
-            Key.stripRepeatedPageFurniture: fallback.stripRepeatedPageFurniture
+            Key.stripRepeatedPageFurniture: fallback.stripRepeatedPageFurniture,
+            Key.extractGraphics: fallback.extractGraphics
         ])
 
         detectHeadings = defaults.bool(forKey: Key.detectHeadings)
@@ -67,6 +73,7 @@ final class ConversionSettings {
         experimentalTableExtraction = defaults.bool(forKey: Key.experimentalTableExtraction)
         normalizeWhitespace = defaults.bool(forKey: Key.normalizeWhitespace)
         stripRepeatedPageFurniture = defaults.bool(forKey: Key.stripRepeatedPageFurniture)
+        extractGraphics = defaults.bool(forKey: Key.extractGraphics)
     }
 
     /// The settings expressed as options for ``MarkdownKit``.
@@ -77,7 +84,8 @@ final class ConversionSettings {
             insertPageBreaks: insertPageBreaks,
             experimentalTableExtraction: experimentalTableExtraction,
             normalizeWhitespace: normalizeWhitespace,
-            stripRepeatedPageFurniture: stripRepeatedPageFurniture
+            stripRepeatedPageFurniture: stripRepeatedPageFurniture,
+            extractGraphics: extractGraphics
         )
     }
 
@@ -90,5 +98,6 @@ final class ConversionSettings {
         experimentalTableExtraction = fallback.experimentalTableExtraction
         normalizeWhitespace = fallback.normalizeWhitespace
         stripRepeatedPageFurniture = fallback.stripRepeatedPageFurniture
+        extractGraphics = fallback.extractGraphics
     }
 }
