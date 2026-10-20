@@ -13,6 +13,7 @@ enum MarkdownBlock: Equatable {
     case table(headers: [String], rows: [[String]])
     case code(text: String, language: String?)
     case quote(text: String)
+    case image(alt: String, path: String)
     case thematicBreak
 
     /// One entry of a bulleted or numbered list.
@@ -52,6 +53,12 @@ enum MarkdownParser {
 
             if isThematicBreak(trimmed) {
                 blocks.append(.thematicBreak)
+                index += 1
+                continue
+            }
+
+            if let image = parseImage(trimmed) {
+                blocks.append(image)
                 index += 1
                 continue
             }
@@ -109,6 +116,22 @@ enum MarkdownParser {
     private static func isThematicBreak(_ trimmed: String) -> Bool {
         guard trimmed.count >= 3 else { return false }
         return trimmed.allSatisfy { $0 == "-" } || trimmed.allSatisfy { $0 == "*" }
+    }
+
+    // MARK: - Images
+
+    /// A line that holds nothing but `![alt](path)` or `![alt](<path>)`.
+    static func parseImage(_ trimmed: String) -> MarkdownBlock? {
+        guard trimmed.hasPrefix("!["), trimmed.hasSuffix(")"),
+              let split = trimmed.range(of: "](") else { return nil }
+
+        let alt = String(trimmed[trimmed.index(trimmed.startIndex, offsetBy: 2)..<split.lowerBound])
+        var path = String(trimmed[split.upperBound...].dropLast())
+        if path.hasPrefix("<"), path.hasSuffix(">") {
+            path = String(path.dropFirst().dropLast())
+        }
+        guard !path.isEmpty else { return nil }
+        return .image(alt: alt, path: path)
     }
 
     // MARK: - Code
@@ -314,6 +337,7 @@ enum MarkdownParser {
             if trimmed.isEmpty { break }
             if parseHeading(trimmed) != nil { break }
             if isThematicBreak(trimmed) { break }
+            if parseImage(trimmed) != nil { break }
             if codeFenceLanguage(of: trimmed) != nil { break }
             if listMarker(of: line) != nil { break }
             if isTableStart(lines, at: index) { break }

@@ -81,7 +81,7 @@ always behaves the same way.
 | Detect lists            | on      | Infers lists from line prefixes             |
 | Insert page breaks      | off     | Emits `---` between pages                   |
 | Collapse blank lines    | on      | Keeps output compact for tokenisers         |
-| Reconstruct tables      | off     | **Experimental**, unreliable; verify output |
+| Reconstruct tables      | on      | Rebuilds tables as Markdown tables          |
 
 ## Testing
 
@@ -101,7 +101,7 @@ against real documents. Put them in `Samples/Input` and run:
 
 ```
 make samples                    # writes Markdown to Samples/Output
-make samples EXPERIMENTAL=1     # also enables table extraction
+make samples NO_TABLES=1        # converts without table reconstruction
 ```
 
 Everything under `Samples/` is ignored by git except its README, because real
@@ -115,10 +115,11 @@ That keeps the fix covered without committing the original file.
 ## Table reconstruction
 
 PDF stores positioned glyphs, not table structure, so tables are recovered by
-geometry and the feature stays experimental:
+geometry. It is on by default and can be turned off in Settings or with a
+flag:
 
 ```
-makeit-markdown report.pdf --experimental-tables
+makeit-markdown report.pdf --no-tables
 ```
 
 Lines are rebuilt from glyph positions rather than from the order the text was

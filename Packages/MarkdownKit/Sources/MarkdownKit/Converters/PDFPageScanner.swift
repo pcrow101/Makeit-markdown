@@ -88,7 +88,7 @@ struct PDFPageScanner {
     ///   - grids: Ruled tables found on the page, from top to bottom. They are
     ///     trusted over text alignment.
     ///   - detectAlignedTables: Whether to also look for tables from the
-    ///     alignment of text alone, which is experimental.
+    ///     alignment of text alone.
     static func scan(
         page: PDFPage,
         grids: [RuledTableGrid] = [],

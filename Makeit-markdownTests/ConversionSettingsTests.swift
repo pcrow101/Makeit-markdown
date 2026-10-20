@@ -17,10 +17,10 @@ struct ConversionSettingsTests {
         #expect(settings.options == ConversionOptions.default)
     }
 
-    @Test("Table extraction is off by default because it is experimental")
-    func tablesOffByDefault() {
+    @Test("Table extraction is on by default")
+    func tablesOnByDefault() {
         let settings = ConversionSettings(defaults: makeDefaults())
-        #expect(!settings.experimentalTableExtraction)
+        #expect(settings.extractTables)
     }
 
     @Test("Changes are reflected in the generated options")
@@ -28,11 +28,11 @@ struct ConversionSettingsTests {
         let settings = ConversionSettings(defaults: makeDefaults())
         settings.detectHeadings = false
         settings.insertPageBreaks = true
-        settings.experimentalTableExtraction = true
+        settings.extractTables = false
 
         #expect(!settings.options.detectHeadings)
         #expect(settings.options.insertPageBreaks)
-        #expect(settings.options.experimentalTableExtraction)
+        #expect(!settings.options.extractTables)
     }
 
     @Test("Changes survive a restart")
@@ -48,13 +48,27 @@ struct ConversionSettingsTests {
         #expect(second.insertPageBreaks)
     }
 
+    @Test("Image extraction is on by default and persists when changed")
+    func graphicsSetting() {
+        let defaults = makeDefaults()
+        let first = ConversionSettings(defaults: defaults)
+        #expect(first.extractGraphics)
+        #expect(first.options.extractGraphics)
+
+        first.extractGraphics = false
+        #expect(!ConversionSettings(defaults: defaults).extractGraphics)
+
+        first.resetToDefaults()
+        #expect(first.extractGraphics)
+    }
+
     @Test("Restoring defaults undoes every change")
     func resetToDefaults() {
         let settings = ConversionSettings(defaults: makeDefaults())
         settings.detectHeadings = false
         settings.detectLists = false
         settings.insertPageBreaks = true
-        settings.experimentalTableExtraction = true
+        settings.extractTables = false
         settings.normalizeWhitespace = false
         settings.stripRepeatedPageFurniture = false
 

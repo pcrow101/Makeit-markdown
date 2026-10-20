@@ -81,7 +81,7 @@ samples: cli
 		name=$$(basename "$$file"); \
 		if "$(PACKAGE_DIR)/.build/release/makeit-markdown" "$$file" \
 			--output "$(SAMPLES_OUT)" --overwrite \
-			$(if $(EXPERIMENTAL),--experimental-tables,) >/dev/null; then \
+			$(if $(NO_TABLES),--no-tables,) >/dev/null; then \
 			echo "  ok    $$name"; \
 		else \
 			echo "  FAIL  $$name"; \

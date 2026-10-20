@@ -38,6 +38,12 @@ struct MakeitMarkdownApp: App {
         }
         .defaultSize(width: 820, height: 560)
 
+        WindowGroup("Image", for: ImageWindowValue.self) { $value in
+            ImageWindowView(value: value)
+        }
+        .defaultSize(width: 800, height: 600)
+        .restorationBehavior(.disabled)
+
         Settings {
             SettingsView()
                 .environment(settings)

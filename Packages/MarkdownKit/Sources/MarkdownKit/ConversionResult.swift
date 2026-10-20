@@ -11,8 +11,6 @@ public struct ConversionWarning: Sendable, Equatable, Codable {
         case imageOnlyContent
         /// The document is encrypted but was readable with an empty password.
         case encryptedDocument
-        /// Experimental table extraction produced a low confidence result.
-        case experimentalTableHeuristic
         /// A feature of the source document could not be represented.
         case unsupportedFeature
     }

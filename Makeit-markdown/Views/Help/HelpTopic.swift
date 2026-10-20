@@ -10,6 +10,7 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
     case gettingStarted
     case supportedFormats
     case conversionOptions
+    case images
     case commandLine
     case troubleshooting
 
@@ -21,6 +22,7 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         case .gettingStarted: return "Getting Started"
         case .supportedFormats: return "Supported Formats"
         case .conversionOptions: return "Conversion Options"
+        case .images: return "Images"
         case .commandLine: return "Command Line"
         case .troubleshooting: return "Troubleshooting"
         }
@@ -32,6 +34,7 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         case .gettingStarted: return "sparkles"
         case .supportedFormats: return "doc.on.doc"
         case .conversionOptions: return "slider.horizontal.3"
+        case .images: return "photo"
         case .commandLine: return "terminal"
         case .troubleshooting: return "lifepreserver"
         }
@@ -43,6 +46,7 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         case .gettingStarted: return Self.gettingStartedBody
         case .supportedFormats: return Self.supportedFormatsBody
         case .conversionOptions: return Self.conversionOptionsBody
+        case .images: return Self.imagesBody
         case .commandLine: return Self.commandLineBody
         case .troubleshooting: return Self.troubleshootingBody
         }
@@ -127,9 +131,10 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
 
         **Reconstruct tables**
 
-        Experimental, and off by default. A PDF stores positioned glyphs rather \
-        than table structure, so reconstruction is a best guess. Always check \
-        the result against the original document.
+        On by default. A PDF stores positioned glyphs rather than table \
+        structure, so tables are rebuilt from the geometry of the page. Check \
+        complex tables against the original document. Turn this off to keep \
+        table text as plain lines.
 
         Tables are found by alignment: several lines placing their text at the \
         same horizontal positions. A grid is only emitted when it holds at \
@@ -137,6 +142,38 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         region that cannot be read confidently stays as prose rather than \
         becoming a misleading table. Tables that use merged cells are the usual \
         reason a region is left alone.
+        """
+
+    private static let imagesBody = """
+        Pictures, drawings and charts in a PDF are saved as PNG files and \
+        linked from the Markdown in reading order, for example \
+        `![Figure 1 (page 2)](report_images/page-2-figure-1.png)`.
+
+        **Where the images go**
+
+        Images are written to a `<name>_images` folder beside the `.md` file \
+        when you choose **File ▸ Save Markdown…**. Keep that folder with the \
+        Markdown file, or the links will not resolve.
+
+        **Turn it on or off**
+
+        Open **Settings** (⌘,) and use **Extract pictures, drawings and \
+        charts**. It is on by default. When it is off, no images are saved and \
+        no image links are written. The command line tool uses `--no-graphics`.
+
+        **The preview**
+
+        The rendered preview shows each image fitted to the window width. \
+        Double-click an image to open it in its own resizable window. \
+        In that window, zoom with the toolbar buttons, **⌘+** and **⌘-**, or a \
+        pinch gesture, and scroll to move around. **⌘0** fits the image to \
+        the window and **⌘1** shows it at its actual size.
+
+        **Limits**
+
+        Embedded pictures are always found. Vector drawings are detected by \
+        heuristics, so a diagram made only of boxes and straight lines can be \
+        missed. Pages with a rotation are skipped.
         """
 
     private static let commandLineBody = """
@@ -161,7 +198,8 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         makeit-markdown report.pdf --stdout
         ```
 
-        Diagnostics go to standard error, so the Markdown can be piped safely.
+        Diagnostics go to standard error, so the Markdown can be piped safely. \
+        Images cannot be saved when writing to standard output.
 
         **Convert a folder**
 
@@ -175,8 +213,9 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         - `--stdout` — write Markdown to standard output
         - `-r`, `--recursive` — search folders recursively
         - `-f`, `--overwrite` — replace existing Markdown files
-        - `--experimental-tables` — attempt table reconstruction
+        - `--no-tables` — do not reconstruct tables
         - `--keep-page-furniture` — keep repeated headers and footers
+        - `--no-graphics` — do not extract images
         - `-q`, `--quiet` — suppress progress messages
 
         The tool exits with `0` on success, `1` if a document failed to \
@@ -184,6 +223,12 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         """
 
     private static let troubleshootingBody = """
+        **Images are missing**
+
+        Check that **Extract pictures, drawings and charts** is on in \
+        Settings, and that the `_images` folder sits beside the `.md` file. \
+        Images are not saved with `--stdout`.
+
         **"No text could be extracted"**
 
         The document most likely contains scanned images rather than text. \
@@ -209,7 +254,8 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
 
         **Tables look wrong**
 
-        Table reconstruction is experimental and off by default. If the result \
-        is not usable, turn it off and the table will appear as plain text.
+        Tables are rebuilt from the positions of text, so unusual layouts can \
+        be misread. If the result is not usable, turn off **Reconstruct \
+        tables** in Settings and the table will appear as plain text.
         """
 }

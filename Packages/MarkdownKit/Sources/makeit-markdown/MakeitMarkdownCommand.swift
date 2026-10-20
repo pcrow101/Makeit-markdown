@@ -59,11 +59,11 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
     @Flag(
         name: .long,
         help: """
-            Attempt to reconstruct tables. Experimental: results are unreliable \
-            and should be checked against the source.
+            Do not reconstruct tables. Table text is then written as ordinary \
+            lines in document order.
             """
     )
-    var experimentalTables = false
+    var noTables = false
 
     @Flag(
         name: .long,
@@ -207,7 +207,7 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
     /// The conversion options implied by the supplied flags.
     var conversionOptions: ConversionOptions {
         ConversionOptions(
-            experimentalTableExtraction: experimentalTables,
+            extractTables: !noTables,
             stripRepeatedPageFurniture: !keepPageFurniture,
             extractGraphics: !noGraphics
         )

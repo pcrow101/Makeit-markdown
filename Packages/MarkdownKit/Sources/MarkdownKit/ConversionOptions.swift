@@ -17,11 +17,9 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
     /// Emit a thematic break between pages of a paginated document.
     public var insertPageBreaks: Bool
 
-    /// Attempt to reconstruct tabular layouts.
-    ///
-    /// - Warning: Experimental. Table reconstruction from positional text is
-    ///   unreliable and is disabled by default.
-    public var experimentalTableExtraction: Bool
+    /// Reconstruct tables, both ruled tables and those inferred from the
+    /// alignment of text.
+    public var extractTables: Bool
 
     /// Collapse runs of blank lines so the output stays compact for tokenisers.
     public var normalizeWhitespace: Bool
@@ -43,7 +41,7 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         detectHeadings: Bool = true,
         detectLists: Bool = true,
         insertPageBreaks: Bool = false,
-        experimentalTableExtraction: Bool = false,
+        extractTables: Bool = true,
         normalizeWhitespace: Bool = true,
         stripRepeatedPageFurniture: Bool = true,
         extractGraphics: Bool = true
@@ -51,7 +49,7 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         self.detectHeadings = detectHeadings
         self.detectLists = detectLists
         self.insertPageBreaks = insertPageBreaks
-        self.experimentalTableExtraction = experimentalTableExtraction
+        self.extractTables = extractTables
         self.normalizeWhitespace = normalizeWhitespace
         self.stripRepeatedPageFurniture = stripRepeatedPageFurniture
         self.extractGraphics = extractGraphics

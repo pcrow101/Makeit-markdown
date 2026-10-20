@@ -15,7 +15,7 @@ final class ConversionSettings {
         static let detectHeadings = "conversion.detectHeadings"
         static let detectLists = "conversion.detectLists"
         static let insertPageBreaks = "conversion.insertPageBreaks"
-        static let experimentalTableExtraction = "conversion.experimentalTableExtraction"
+        static let extractTables = "conversion.extractTables"
         static let normalizeWhitespace = "conversion.normalizeWhitespace"
         static let stripRepeatedPageFurniture = "conversion.stripRepeatedPageFurniture"
         static let extractGraphics = "conversion.extractGraphics"
@@ -35,8 +35,8 @@ final class ConversionSettings {
         didSet { defaults.set(insertPageBreaks, forKey: Key.insertPageBreaks) }
     }
 
-    var experimentalTableExtraction: Bool {
-        didSet { defaults.set(experimentalTableExtraction, forKey: Key.experimentalTableExtraction) }
+    var extractTables: Bool {
+        didSet { defaults.set(extractTables, forKey: Key.extractTables) }
     }
 
     var normalizeWhitespace: Bool {
@@ -61,7 +61,7 @@ final class ConversionSettings {
             Key.detectHeadings: fallback.detectHeadings,
             Key.detectLists: fallback.detectLists,
             Key.insertPageBreaks: fallback.insertPageBreaks,
-            Key.experimentalTableExtraction: fallback.experimentalTableExtraction,
+            Key.extractTables: fallback.extractTables,
             Key.normalizeWhitespace: fallback.normalizeWhitespace,
             Key.stripRepeatedPageFurniture: fallback.stripRepeatedPageFurniture,
             Key.extractGraphics: fallback.extractGraphics
@@ -70,7 +70,7 @@ final class ConversionSettings {
         detectHeadings = defaults.bool(forKey: Key.detectHeadings)
         detectLists = defaults.bool(forKey: Key.detectLists)
         insertPageBreaks = defaults.bool(forKey: Key.insertPageBreaks)
-        experimentalTableExtraction = defaults.bool(forKey: Key.experimentalTableExtraction)
+        extractTables = defaults.bool(forKey: Key.extractTables)
         normalizeWhitespace = defaults.bool(forKey: Key.normalizeWhitespace)
         stripRepeatedPageFurniture = defaults.bool(forKey: Key.stripRepeatedPageFurniture)
         extractGraphics = defaults.bool(forKey: Key.extractGraphics)
@@ -82,7 +82,7 @@ final class ConversionSettings {
             detectHeadings: detectHeadings,
             detectLists: detectLists,
             insertPageBreaks: insertPageBreaks,
-            experimentalTableExtraction: experimentalTableExtraction,
+            extractTables: extractTables,
             normalizeWhitespace: normalizeWhitespace,
             stripRepeatedPageFurniture: stripRepeatedPageFurniture,
             extractGraphics: extractGraphics
@@ -95,7 +95,7 @@ final class ConversionSettings {
         detectHeadings = fallback.detectHeadings
         detectLists = fallback.detectLists
         insertPageBreaks = fallback.insertPageBreaks
-        experimentalTableExtraction = fallback.experimentalTableExtraction
+        extractTables = fallback.extractTables
         normalizeWhitespace = fallback.normalizeWhitespace
         stripRepeatedPageFurniture = fallback.stripRepeatedPageFurniture
         extractGraphics = fallback.extractGraphics

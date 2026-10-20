@@ -186,6 +186,24 @@ struct MarkdownParserTests {
         #expect(MarkdownParser.parse("> One\n> Two") == [.quote(text: "One Two")])
     }
 
+    @Test("An image line becomes an image block, with or without angle brackets")
+    func parsesImages() {
+        #expect(MarkdownParser.parse("![Figure 1 (page 2)](<My Doc_images/page-2-figure-1.png>)") == [
+            .image(alt: "Figure 1 (page 2)", path: "My Doc_images/page-2-figure-1.png")
+        ])
+        #expect(MarkdownParser.parse("![](a/b.png)") == [.image(alt: "", path: "a/b.png")])
+    }
+
+    @Test("An image between paragraphs stays separate")
+    func imageBetweenParagraphs() {
+        let blocks = MarkdownParser.parse("Before\n![Fig](<x_images/f.png>)\nAfter")
+        #expect(blocks == [
+            .paragraph(text: "Before"),
+            .image(alt: "Fig", path: "x_images/f.png"),
+            .paragraph(text: "After")
+        ])
+    }
+
     @Test("An empty document yields no blocks")
     func handlesEmptyInput() {
         #expect(MarkdownParser.parse("").isEmpty)

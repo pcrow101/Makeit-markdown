@@ -17,7 +17,7 @@ struct CLIArgumentTests {
         #expect(!command.stdout)
         #expect(!command.recursive)
         #expect(!command.overwrite)
-        #expect(!command.experimentalTables)
+        #expect(!command.noTables)
         #expect(!command.quiet)
     }
 
@@ -47,13 +47,13 @@ struct CLIArgumentTests {
         #expect(short.recursive && short.overwrite && short.quiet)
     }
 
-    @Test("The experimental table flag maps onto conversion options")
-    func experimentalTablesFlag() throws {
-        let off = try MakeitMarkdownCommand.parse(["a.pdf"])
-        #expect(!off.conversionOptions.experimentalTableExtraction)
+    @Test("Tables are reconstructed unless --no-tables is given")
+    func noTablesFlag() throws {
+        let on = try MakeitMarkdownCommand.parse(["a.pdf"])
+        #expect(on.conversionOptions.extractTables)
 
-        let on = try MakeitMarkdownCommand.parse(["a.pdf", "--experimental-tables"])
-        #expect(on.conversionOptions.experimentalTableExtraction)
+        let off = try MakeitMarkdownCommand.parse(["a.pdf", "--no-tables"])
+        #expect(!off.conversionOptions.extractTables)
     }
 
     @Test("An unknown flag is rejected")

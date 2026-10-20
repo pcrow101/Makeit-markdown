@@ -112,7 +112,7 @@ struct DeterminismTests {
         )
 
         let converter = PDFConverter()
-        let options = ConversionOptions(experimentalTableExtraction: true)
+        let options = ConversionOptions(extractTables: true)
         var outputs: Set<String> = []
         for _ in 0..<5 {
             outputs.insert(try await converter.convert(url: url, options: options).markdown)
