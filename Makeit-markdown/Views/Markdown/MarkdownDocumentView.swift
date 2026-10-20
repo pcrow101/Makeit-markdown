@@ -1,3 +1,4 @@
+import MarkdownKit
 import SwiftUI
 
 /// Draws parsed Markdown, including tables.
@@ -8,6 +9,9 @@ import SwiftUI
 struct MarkdownDocumentView: View {
 
     let markdown: String
+
+    /// Files the Markdown refers to, such as extracted images.
+    var assets: [ConversionAsset] = []
 
     private var blocks: [MarkdownBlock] {
         MarkdownParser.parse(markdown)
@@ -57,6 +61,9 @@ struct MarkdownDocumentView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+        case .image(let alt, let path):
+            MarkdownImageView(alt: alt, path: path, assets: assets)
 
         case .thematicBreak:
             Divider()

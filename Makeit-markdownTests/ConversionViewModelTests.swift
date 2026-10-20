@@ -17,6 +17,7 @@ private struct StubConverter: DocumentConverter {
     let formatName = "Stub"
     var supportedTypes: [UTType] { [.data] }
     let outcome: Outcome
+    var assets: [ConversionAsset] = []
 
     init(_ outcome: Outcome = .success(markdown: "# Stub\n", warnings: [])) {
         self.outcome = outcome
@@ -29,7 +30,8 @@ private struct StubConverter: DocumentConverter {
                 markdown: markdown,
                 sourceURL: url,
                 pageCount: 1,
-                warnings: warnings
+                warnings: warnings,
+                assets: assets
             )
 
         case .failure(let error):
@@ -285,6 +287,32 @@ struct ConversionViewModelTests {
             .contentsOfDirectory(atPath: directory.path(percentEncoded: false))
             .sorted()
         #expect(names == ["a.md", "b.md"])
+    }
+
+    @Test("Saving writes extracted images into the _images folder")
+    func saveAllWritesAssets() async throws {
+        let markdown = "![Figure 1](<a_images/page-1-figure-1.png>)\n"
+        var converter = StubConverter(.success(markdown: markdown, warnings: []))
+        converter.assets = [
+            ConversionAsset(relativePath: "a_images/page-1-figure-1.png", data: Data([1, 2, 3]))
+        ]
+        let viewModel = ConversionViewModel(
+            settings: makeSettings(),
+            registry: ConverterRegistry(converters: [converter])
+        )
+        viewModel.addFiles([url("a.pdf")])
+
+        viewModel.convertAll()
+        await viewModel.waitForConversionToFinish()
+
+        let directory = URL(filePath: NSTemporaryDirectory())
+            .appending(path: "makeit-markdown-save-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        #expect(viewModel.saveAll(to: directory) == 1)
+        let image = directory.appending(path: "a_images/page-1-figure-1.png")
+        #expect(try Data(contentsOf: image) == Data([1, 2, 3]))
     }
 
     @Test("Saving an unconverted queue writes nothing")

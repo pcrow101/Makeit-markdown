@@ -9,7 +9,7 @@ struct PDFPageScannerTests {
     private let converter = PDFConverter()
 
     private var tableOptions: ConversionOptions {
-        ConversionOptions(experimentalTableExtraction: true)
+        ConversionOptions(extractTables: true)
     }
 
     @Test("A grid of cells becomes a Markdown table")
@@ -59,8 +59,8 @@ struct PDFPageScannerTests {
         #expect(!rows.contains { $0.contains("Alice") && $0.contains("Bob") })
     }
 
-    @Test("Tables are not produced unless they are asked for")
-    func disabledByDefault() async throws {
+    @Test("Tables are produced by default and not when extraction is off")
+    func enabledByDefault() async throws {
         let scratch = try PDFFixture.Scratch()
         let url = try PDFFixture.write(
             tableRows: [
@@ -72,9 +72,14 @@ struct PDFPageScannerTests {
             in: scratch.directory
         )
 
-        let result = try await converter.convert(url: url, options: .default)
+        let byDefault = try await converter.convert(url: url, options: .default)
+        #expect(byDefault.markdown.contains("| --- |"))
 
-        #expect(!result.markdown.contains("| --- |"))
+        let off = try await converter.convert(
+            url: url,
+            options: ConversionOptions(extractTables: false)
+        )
+        #expect(!off.markdown.contains("| --- |"))
     }
 
     @Test("Prose is not mistaken for a table")

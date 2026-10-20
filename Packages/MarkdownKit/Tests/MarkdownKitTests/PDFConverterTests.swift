@@ -105,8 +105,8 @@ struct PDFConverterTests {
         }
     }
 
-    @Test("Enabling experimental tables raises a warning")
-    func experimentalTableWarning() async throws {
+    @Test("Table extraction is on by default and raises no warning")
+    func tableExtractionRaisesNoWarning() async throws {
         let scratch = try PDFFixture.Scratch()
         let url = try PDFFixture.write(
             lines: [PDFFixture.Line("Some ordinary content.")],
@@ -114,12 +114,11 @@ struct PDFConverterTests {
             in: scratch.directory
         )
 
-        let result = try await converter.convert(
-            url: url,
-            options: ConversionOptions(experimentalTableExtraction: true)
-        )
+        #expect(ConversionOptions.default.extractTables)
 
-        #expect(result.warnings.contains { $0.kind == .experimentalTableHeuristic })
+        let result = try await converter.convert(url: url, options: .default)
+
+        #expect(result.warnings.isEmpty)
     }
 
     @Test("A page without text raises an empty page warning")

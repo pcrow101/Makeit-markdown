@@ -16,6 +16,9 @@ struct SettingsView: View {
 
                 Toggle("Detect lists", isOn: $settings.detectLists)
                     .help("Infer bulleted and numbered lists from line prefixes.")
+
+                Toggle("Reconstruct tables", isOn: $settings.extractTables)
+                    .help("Rebuild tables as Markdown tables. Turn off to keep table text as plain lines.")
             } header: {
                 Text("Structure")
             }
@@ -36,18 +39,18 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("Reconstruct tables", isOn: $settings.experimentalTableExtraction)
-
-                Text(
+                Toggle(
+                    "Extract pictures, drawings and charts",
+                    isOn: $settings.extractGraphics
+                )
+                .help(
                     """
-                    Experimental. Recovering tables from a PDF's positioned text \
-                    is unreliable, so check any tables against the original document.
+                    Saves each image to an _images folder beside the Markdown file. \
+                    Turn off to produce no images and no image links.
                     """
                 )
-                .font(.caption)
-                .foregroundStyle(.secondary)
             } header: {
-                Text("Experimental")
+                Text("Images")
             }
 
             Section {

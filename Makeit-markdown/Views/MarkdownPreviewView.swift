@@ -59,7 +59,7 @@ struct MarkdownPreviewView: View {
                 }
             case .rendered:
                 ScrollView {
-                    MarkdownDocumentView(markdown: job.markdown ?? "")
+                    MarkdownDocumentView(markdown: job.markdown ?? "", assets: job.result?.assets ?? [])
                         .padding()
                 }
             }

@@ -58,7 +58,7 @@ enum PDFGraphicsExtractor {
     static func renderPNG(of region: Region, on page: PDFPage) -> Data? {
         guard let cgPage = page.pageRef else { return nil }
 
-        var scale: CGFloat = 2
+        var scale: CGFloat = 4
         let longest = max(region.rect.width, region.rect.height) * scale
         if longest > maximumPixelSide { scale *= maximumPixelSide / longest }
 
@@ -104,7 +104,7 @@ enum PDFGraphicsExtractor {
     private static let minimumRegionSide: CGFloat = 40
     private static let mergeDistance: CGFloat = 4
     private static let padding: CGFloat = 4
-    private static let maximumPixelSide: CGFloat = 2400
+    private static let maximumPixelSide: CGFloat = 6000
 
     // MARK: - Clustering
 

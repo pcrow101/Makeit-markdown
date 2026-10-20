@@ -6,12 +6,11 @@ import UniformTypeIdentifiers
 
 /// Converts PDF documents into Markdown using PDFKit.
 ///
-/// Version one emits headings, lists and plain paragraph text. Table
-/// reconstruction is gated behind
-/// ``ConversionOptions/experimentalTableExtraction`` because recovering tabular
-/// structure from positioned glyphs is unreliable. Scanned documents are
-/// reported as warnings rather than being passed through optical character
-/// recognition, which is out of scope.
+/// Emits headings, lists, tables and plain paragraph text, and can save
+/// pictures, drawings and charts as images. Tables are recovered from page
+/// geometry and can be turned off with ``ConversionOptions/extractTables``.
+/// Scanned documents are reported as warnings rather than being passed
+/// through optical character recognition, which is out of scope.
 public struct PDFConverter: DocumentConverter {
 
     public let formatName = "PDF"
@@ -32,7 +31,7 @@ public struct PDFConverter: DocumentConverter {
             throw ConversionError.passwordProtected(url: url)
         }
 
-        var warnings = Self.openingWarnings(for: document, options: options)
+        var warnings = Self.openingWarnings(for: document)
 
         let analyzer = DocumentStructureAnalyzer(options: options)
         var pageElements: [[PDFPageScanner.Element]] = []
@@ -100,25 +99,24 @@ public struct PDFConverter: DocumentConverter {
     /// Reads the text and tables of `page`.
     ///
     /// Scanning recovers page geometry, which is what makes tables
-    /// recoverable. A ruled table is evidence enough to scan, but tables
-    /// inferred from text alignment stay behind the experimental option so that
-    /// ordinary conversions keep their established behaviour.
+    /// recoverable. With table extraction off, text is read in document order
+    /// and no table is built.
     private static func elements(
         on page: PDFPage,
         options: ConversionOptions,
         continuation: inout RuledTableContinuation?
     ) -> [PDFPageScanner.Element] {
-        let ownGrids = PDFRuledTable.grids(on: page)
-        let grids = ownGrids.isEmpty ? (continuation.map { [$0.grid] } ?? []) : ownGrids
-
-        guard options.experimentalTableExtraction || !grids.isEmpty else {
+        guard options.extractTables else {
             return textLines(in: page).map { .line($0) }
         }
+
+        let ownGrids = PDFRuledTable.grids(on: page)
+        let grids = ownGrids.isEmpty ? (continuation.map { [$0.grid] } ?? []) : ownGrids
 
         var elements = PDFPageScanner.scan(
             page: page,
             grids: grids,
-            detectAlignedTables: options.experimentalTableExtraction
+            detectAlignedTables: true
         )
         if ownGrids.isEmpty, let continuation {
             elements = continuation.completing(elements)
@@ -133,10 +131,7 @@ public struct PDFConverter: DocumentConverter {
         return elements
     }
 
-    private static func openingWarnings(
-        for document: PDFDocument,
-        options: ConversionOptions
-    ) -> [ConversionWarning] {
+    private static func openingWarnings(for document: PDFDocument) -> [ConversionWarning] {
         var warnings: [ConversionWarning] = []
 
         if document.isEncrypted {
@@ -144,15 +139,6 @@ public struct PDFConverter: DocumentConverter {
                 ConversionWarning(
                     kind: .encryptedDocument,
                     message: "The document is encrypted but was opened without a password."
-                )
-            )
-        }
-
-        if options.experimentalTableExtraction {
-            warnings.append(
-                ConversionWarning(
-                    kind: .experimentalTableHeuristic,
-                    message: "Experimental table extraction is enabled. Verify tables against the source."
                 )
             )
         }
