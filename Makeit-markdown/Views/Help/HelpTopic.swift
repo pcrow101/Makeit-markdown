@@ -86,14 +86,21 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         that contain only scanned images cannot be converted, because \
         Makeit-Markdown does not perform text recognition.
 
-        **Planned**
+        - **Excel** (`.xlsx`) — each visible sheet becomes a heading followed \
+        by a table, with the first row as the header. Formulas show their last \
+        calculated value and dates are written as `YYYY-MM-DD`. Sheets are cut \
+        at the row limit set in Settings. Charts and pictures are not \
+        converted, and a warning names the sheets that hold them. Older `.xls` \
+        workbooks must be saved as `.xlsx` first.
 
-        - **Word** (`.docx`, `.doc`)
-        - **Excel** (`.xlsx`, `.xls`)
-
-        Word and Excel documents can already be added to the queue. They are \
-        recognised and reported clearly rather than being silently ignored, so \
-        that existing workflows keep working when support arrives.
+        - **Word** (`.docx`, `.doc`) — headings, lists, tables, quotes and \
+        code samples are kept, and pictures are saved as image files. In a \
+        `.docx` document, headings and lists come from the document's own \
+        styles. A `.doc` file is read whatever it holds: an older Word \
+        97–2003 document, RTF, or a web page saved as `.doc`, such as a \
+        Confluence export to Word. Bold, italics and links are not kept, \
+        charts are not converted, and password protected documents cannot be \
+        opened.
         """
 
     private static let conversionOptionsBody = """
@@ -142,12 +149,24 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         region that cannot be read confidently stays as prose rather than \
         becoming a misleading table. Tables that use merged cells are the usual \
         reason a region is left alone.
+
+        **Maximum rows per sheet**
+
+        Applies to Excel workbooks. Each sheet is cut after this many rows \
+        below its header, and a warning says how many rows were left out. \
+        The limit applies to every sheet separately. Enter 0 to keep every row.
         """
 
     private static let imagesBody = """
         Pictures, drawings and charts in a PDF are saved as PNG files and \
         linked from the Markdown in reading order, for example \
         `![Figure 1 (page 2)](report_images/page-2-figure-1.png)`.
+
+        Pictures in a Word document are saved too, using the picture's \
+        description as its caption, for example \
+        `![System diagram](report_images/image-1.png)`. Pictures in formats \
+        a Markdown viewer cannot show, such as EMF or WMF drawings, are \
+        skipped with a warning.
 
         **Where the images go**
 
@@ -216,6 +235,7 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         - `--no-tables` — do not reconstruct tables
         - `--keep-page-furniture` — keep repeated headers and footers
         - `--no-graphics` — do not extract images
+        - `--max-rows` — most rows per spreadsheet sheet (0 for no limit)
         - `-q`, `--quiet` — suppress progress messages
 
         The tool exits with `0` on success, `1` if a document failed to \
@@ -223,6 +243,12 @@ enum HelpTopic: String, CaseIterable, Identifiable, Sendable {
         """
 
     private static let troubleshootingBody = """
+        **A spreadsheet is cut short**
+
+        Each sheet is limited to the number of rows set under **Maximum rows \
+        per sheet** in Settings, 1,000 by default. Raise the limit, or enter 0 \
+        to keep every row. On the command line use `--max-rows`.
+
         **Images are missing**
 
         Check that **Extract pictures, drawings and charts** is on in \

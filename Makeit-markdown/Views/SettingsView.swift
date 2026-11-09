@@ -54,6 +54,26 @@ struct SettingsView: View {
             }
 
             Section {
+                TextField(
+                    "Maximum rows per sheet",
+                    value: $settings.maxSpreadsheetRows,
+                    format: .number
+                )
+                .help("The most rows kept from each sheet of an Excel workbook. 0 means no limit.")
+
+                Text(
+                    """
+                    Rows below the header kept from each sheet. Longer sheets are cut \
+                    and a warning is shown. Use 0 for no limit.
+                    """
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } header: {
+                Text("Spreadsheets")
+            }
+
+            Section {
                 Button("Restore Defaults") {
                     settings.resetToDefaults()
                 }

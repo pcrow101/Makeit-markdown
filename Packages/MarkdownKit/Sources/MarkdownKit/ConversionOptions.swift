@@ -34,6 +34,10 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
     /// Markdown output.
     public var extractGraphics: Bool
 
+    /// The most rows converted from each spreadsheet sheet, not counting the
+    /// header row. Zero means no limit.
+    public var maxSpreadsheetRows: Int
+
     /// The default option set used when the caller expresses no preference.
     public static let `default` = ConversionOptions()
 
@@ -44,7 +48,8 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         extractTables: Bool = true,
         normalizeWhitespace: Bool = true,
         stripRepeatedPageFurniture: Bool = true,
-        extractGraphics: Bool = true
+        extractGraphics: Bool = true,
+        maxSpreadsheetRows: Int = 1_000
     ) {
         self.detectHeadings = detectHeadings
         self.detectLists = detectLists
@@ -53,5 +58,6 @@ public struct ConversionOptions: Sendable, Equatable, Codable {
         self.normalizeWhitespace = normalizeWhitespace
         self.stripRepeatedPageFurniture = stripRepeatedPageFurniture
         self.extractGraphics = extractGraphics
+        self.maxSpreadsheetRows = maxSpreadsheetRows
     }
 }

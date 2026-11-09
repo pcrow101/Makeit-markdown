@@ -12,13 +12,25 @@ struct ConverterRegistryTests {
         #expect(converter.formatName == "PDF")
     }
 
-    @Test("Word and Excel documents resolve to their stub converters", arguments: [
+    @Test("Word and Excel documents resolve to their converters", arguments: [
         ("docx", "Word"), ("xlsx", "Excel")
     ])
     func resolvesStubFormats(fileExtension: String, expectedName: String) throws {
         let type = try #require(UTType(filenameExtension: fileExtension))
         let converter = try #require(ConverterRegistry.standard.converter(for: type))
         #expect(converter.formatName == expectedName)
+    }
+
+    @Test("Legacy .xls workbooks are not supported")
+    func legacyExcelIsUnsupported() async throws {
+        let scratch = try PDFFixture.Scratch()
+        let url = scratch.directory.appending(path: "old.xls")
+        try Data([0xD0, 0xCF, 0x11, 0xE0]).write(to: url)
+
+        #expect(ConverterRegistry.standard.converter(for: url) == nil)
+        await #expect(throws: ConversionError.unsupportedFormat(fileExtension: "xls")) {
+            try await ConverterRegistry.standard.convert(url: url)
+        }
     }
 
     @Test("An unregistered type resolves to no converter")
@@ -45,15 +57,24 @@ struct ConverterRegistryTests {
         }
     }
 
-    @Test("A registered but unshipped format reports that it is unavailable")
-    func notYetImplemented() async throws {
+    @Test("An empty Word document is reported as unreadable")
+    func emptyWordDocument() async throws {
         let scratch = try PDFFixture.Scratch()
         let url = scratch.directory.appending(path: "report.docx")
         try Data().write(to: url)
 
-        await #expect(throws: ConversionError.notYetImplemented(format: "Word")) {
+        await #expect(throws: ConversionError.unreadableDocument(
+            url: url,
+            reason: "the file is not a valid Word document"
+        )) {
             try await ConverterRegistry.standard.convert(url: url)
         }
+    }
+
+    @Test("Legacy .doc files resolve to the Word converter")
+    func legacyWordDocument() {
+        let url = URL(fileURLWithPath: "/tmp/report.doc")
+        #expect(ConverterRegistry.standard.converter(for: url)?.formatName == "Word")
     }
 
     @Test("Supported extensions cover every shipping and planned format")

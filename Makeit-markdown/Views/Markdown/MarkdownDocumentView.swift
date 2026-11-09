@@ -13,18 +13,35 @@ struct MarkdownDocumentView: View {
     /// Files the Markdown refers to, such as extracted images.
     var assets: [ConversionAsset] = []
 
-    private var blocks: [MarkdownBlock] {
-        MarkdownParser.parse(markdown)
-    }
+    /// The parsed document, or `nil` while parsing is under way.
+    ///
+    /// Parsing happens once per document and off the main thread, so a large
+    /// conversion does not stall the interface each time the view refreshes.
+    @State private var blocks: [MarkdownBlock]?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                view(for: block)
+        Group {
+            if let blocks {
+                // Lazy, so only the blocks on screen are built.
+                LazyVStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                        view(for: block)
+                    }
+                }
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .textSelection(.enabled)
+        .task(id: markdown) {
+            let source = markdown
+            blocks = await Task.detached(priority: .userInitiated) {
+                MarkdownParser.parse(source)
+            }.value
+        }
     }
 
     @ViewBuilder
@@ -117,6 +134,14 @@ private struct TableBlockView: View {
     let headers: [String]
     let rows: [[String]]
 
+    /// The most rows drawn. Laying out every cell of a spreadsheet with
+    /// thousands of rows takes seconds; the Markdown view shows them all.
+    static let maximumRows = 200
+
+    private var visibleRows: [[String]] {
+        Array(rows.prefix(Self.maximumRows))
+    }
+
     /// The width given to each column.
     private let columnWidth: CGFloat = 190
     private let spacing: CGFloat = 14
@@ -128,6 +153,19 @@ private struct TableBlockView: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            grid
+
+            if rows.count > Self.maximumRows {
+                Text("Showing the first \(Self.maximumRows) of \(rows.count) rows. "
+                    + "Switch to Markdown to see them all.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var grid: some View {
         ScrollView(.horizontal) {
             Grid(alignment: .topLeading, horizontalSpacing: spacing, verticalSpacing: 8) {
                 GridRow {
@@ -138,14 +176,14 @@ private struct TableBlockView: View {
 
                 rule(opacity: 1)
 
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                ForEach(Array(visibleRows.enumerated()), id: \.offset) { index, row in
                     GridRow {
                         ForEach(Array(row.enumerated()), id: \.offset) { _, text in
                             cell(text, isHeader: false)
                         }
                     }
 
-                    if index < rows.count - 1 {
+                    if index < visibleRows.count - 1 {
                         rule(opacity: 0.35)
                     }
                 }

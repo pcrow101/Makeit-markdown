@@ -16,7 +16,7 @@ struct DropZoneView: View {
                 Text("Drop Documents Here")
                     .font(.headline)
 
-                Text("PDF documents are converted to Markdown. Word and Excel support is coming.")
+                Text("PDF, Word and Excel documents are converted to Markdown.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

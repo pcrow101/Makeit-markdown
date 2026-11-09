@@ -56,6 +56,25 @@ struct CLIArgumentTests {
         #expect(!off.conversionOptions.extractTables)
     }
 
+    @Test("The spreadsheet row limit defaults to 1,000 and can be changed")
+    func maxRowsOption() throws {
+        let byDefault = try MakeitMarkdownCommand.parse(["a.xlsx"])
+        #expect(byDefault.conversionOptions.maxSpreadsheetRows == 1_000)
+
+        let limited = try MakeitMarkdownCommand.parse(["a.xlsx", "--max-rows", "50"])
+        #expect(limited.conversionOptions.maxSpreadsheetRows == 50)
+
+        let unlimited = try MakeitMarkdownCommand.parse(["a.xlsx", "--max-rows", "0"])
+        #expect(unlimited.conversionOptions.maxSpreadsheetRows == 0)
+    }
+
+    @Test("A negative row limit is rejected")
+    func negativeMaxRows() {
+        #expect(throws: (any Error).self) {
+            try MakeitMarkdownCommand.parse(["a.xlsx", "--max-rows=-1"])
+        }
+    }
+
     @Test("An unknown flag is rejected")
     func unknownFlag() {
         #expect(throws: (any Error).self) {

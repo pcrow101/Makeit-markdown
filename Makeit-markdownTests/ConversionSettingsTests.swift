@@ -62,6 +62,28 @@ struct ConversionSettingsTests {
         #expect(first.extractGraphics)
     }
 
+    @Test("The spreadsheet row limit defaults to 1,000, persists and resets")
+    func spreadsheetRowLimit() {
+        let defaults = makeDefaults()
+        let first = ConversionSettings(defaults: defaults)
+        #expect(first.maxSpreadsheetRows == 1_000)
+        #expect(first.options.maxSpreadsheetRows == 1_000)
+
+        first.maxSpreadsheetRows = 250
+        #expect(ConversionSettings(defaults: defaults).maxSpreadsheetRows == 250)
+        #expect(first.options.maxSpreadsheetRows == 250)
+
+        first.resetToDefaults()
+        #expect(first.maxSpreadsheetRows == 1_000)
+    }
+
+    @Test("A negative row limit is treated as no limit")
+    func negativeRowLimit() {
+        let settings = ConversionSettings(defaults: makeDefaults())
+        settings.maxSpreadsheetRows = -5
+        #expect(settings.options.maxSpreadsheetRows == 0)
+    }
+
     @Test("Restoring defaults undoes every change")
     func resetToDefaults() {
         let settings = ConversionSettings(defaults: makeDefaults())

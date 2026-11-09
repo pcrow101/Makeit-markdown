@@ -80,7 +80,9 @@ struct InputResolver {
             .filter { url in
                 let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
                 let isRegularFile = values?.isRegularFile ?? false
-                return isRegularFile && registry.converter(for: url) != nil
+                // Office leaves a small "~$" owner file beside an open document.
+                let isLockFile = url.lastPathComponent.hasPrefix("~$")
+                return isRegularFile && !isLockFile && registry.converter(for: url) != nil
             }
             .sorted { $0.path(percentEncoded: false) < $1.path(percentEncoded: false) }
     }

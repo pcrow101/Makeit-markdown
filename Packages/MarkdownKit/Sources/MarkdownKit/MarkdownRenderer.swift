@@ -69,6 +69,14 @@ public struct MarkdownRenderer: Sendable {
                     .replacingOccurrences(of: "]", with: ")")
                 builder.addRawBlock("![\(alt)](\(path))")
 
+            case .codeBlock(let text):
+                flushList()
+                builder.addCodeBlock(text)
+
+            case .blockQuote(let text):
+                flushList()
+                builder.addBlockQuote(text)
+
             case .table(let rows):
                 flushList()
                 guard let headers = rows.first else { continue }

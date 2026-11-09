@@ -15,8 +15,8 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
         commandName: "makeit-markdown",
         abstract: "Convert documents into an AI friendly Markdown format.",
         discussion: """
-            Converts PDF documents into Markdown. Word and Excel documents are \
-            recognised but not yet supported.
+            Converts PDF documents, Word documents (.docx and .doc) and Excel \
+            workbooks (.xlsx) into Markdown.
 
             Examples:
               makeit-markdown report.pdf
@@ -81,6 +81,15 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
     )
     var noGraphics = false
 
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "The most rows converted from each spreadsheet sheet, below the header. 0 means no limit.",
+            valueName: "count"
+        )
+    )
+    var maxRows = 1_000
+
     @Flag(name: [.customShort("q"), .long], help: "Suppress progress messages.")
     var quiet = false
 
@@ -92,6 +101,9 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
         }
         guard !(stdout && output != nil) else {
             throw ValidationError("Specify either --stdout or --output, not both.")
+        }
+        guard maxRows >= 0 else {
+            throw ValidationError("--max-rows must not be negative.")
         }
     }
 
@@ -209,7 +221,8 @@ struct MakeitMarkdownCommand: AsyncParsableCommand {
         ConversionOptions(
             extractTables: !noTables,
             stripRepeatedPageFurniture: !keepPageFurniture,
-            extractGraphics: !noGraphics
+            extractGraphics: !noGraphics,
+            maxSpreadsheetRows: maxRows
         )
     }
 
