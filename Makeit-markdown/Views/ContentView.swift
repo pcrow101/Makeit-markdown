@@ -1,3 +1,4 @@
+import AppKit
 import MarkdownKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -9,7 +10,6 @@ struct ContentView: View {
     private var viewModel
 
     @State private var isImportingFiles = false
-    @State private var isChoosingSaveDirectory = false
     @State private var isTargetedForDrop = false
 
     var body: some View {
@@ -37,12 +37,6 @@ struct ContentView: View {
             allowsMultipleSelection: true
         ) { result in
             handleImport(result)
-        }
-        .fileImporter(
-            isPresented: $isChoosingSaveDirectory,
-            allowedContentTypes: [.folder]
-        ) { result in
-            handleSaveDirectory(result)
         }
         .alert(
             "Something went wrong",
@@ -141,22 +135,28 @@ struct ContentView: View {
 
     private func beginSave() {
         guard !viewModel.convertedJobs.isEmpty else { return }
-        isChoosingSaveDirectory = true
+
+        // A folder chooser built with `fileImporter` always labels its button
+        // "Open", so the panel is created directly to say "Save".
+        let panel = NSOpenPanel()
+        panel.title = "Save Markdown"
+        panel.message = "Choose a folder to save the converted Markdown files in."
+        panel.prompt = "Save"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+
+        panel.begin { response in
+            guard response == .OK, let directory = panel.url else { return }
+            viewModel.saveAll(to: directory)
+        }
     }
 
     private func handleImport(_ result: Result<[URL], any Error>) {
         switch result {
         case .success(let urls):
             viewModel.addFiles(urls)
-        case .failure(let error):
-            viewModel.errorMessage = error.localizedDescription
-        }
-    }
-
-    private func handleSaveDirectory(_ result: Result<URL, any Error>) {
-        switch result {
-        case .success(let directory):
-            viewModel.saveAll(to: directory)
         case .failure(let error):
             viewModel.errorMessage = error.localizedDescription
         }

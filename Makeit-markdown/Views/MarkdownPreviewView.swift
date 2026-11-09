@@ -50,13 +50,7 @@ struct MarkdownPreviewView: View {
 
             switch mode {
             case .source:
-                ScrollView {
-                    Text(job.markdown ?? "")
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                }
+                SourceTextView(text: job.markdown ?? "")
             case .rendered:
                 ScrollView {
                     MarkdownDocumentView(markdown: job.markdown ?? "", assets: job.result?.assets ?? [])

@@ -56,9 +56,10 @@ extension ConversionError: LocalizedError {
     public var recoverySuggestion: String? {
         switch self {
         case .unsupportedFormat:
-            return "Choose a PDF document. Word and Excel support is planned for a future release."
+            return "Choose a PDF, a Word document (.docx or .doc) or an Excel (.xlsx) workbook. "
+                + "Older .xls workbooks must be saved as .xlsx first."
         case .notYetImplemented:
-            return "This format is planned for a future release. Convert a PDF in the meantime."
+            return "This format is planned for a future release."
         case .fileNotFound:
             return "Check that the file still exists and that you have permission to read it."
         case .unreadableDocument:

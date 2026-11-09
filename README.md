@@ -1,6 +1,6 @@
 # Makeit-Markdown
 
-Converts Word, Excel and PDF documents into Markdown, a plain text format that
+Converts PDF, Word and Excel documents into Markdown, a plain text format that
 large language models read far more reliably than binary office formats.
 
 A sandboxed SwiftUI app and a standalone command line tool share one conversion
@@ -9,14 +9,22 @@ window or piped through a script.
 
 ## Status
 
-| Format | Extensions     | State                        |
-| ------ | -------------- | ---------------------------- |
-| PDF    | `.pdf`         | Supported                    |
-| Word   | `.docx`, `.doc`| Recognised, not yet converted |
-| Excel  | `.xlsx`, `.xls`| Recognised, not yet converted |
+| Format | Extensions      | State     |
+| ------ | --------------- | --------- |
+| PDF    | `.pdf`          | Supported |
+| Word   | `.docx`, `.doc` | Supported |
+| Excel  | `.xlsx`         | Supported |
 
-Word and Excel documents are already registered, so they appear in file pickers
-and produce a clear "not available yet" message rather than a generic failure.
+Word documents keep their headings, lists, tables, quotes, code samples and
+pictures; inline formatting such as bold and links is dropped. A `.docx` file is
+read directly from its Open XML package. A `.doc` file is identified by its
+contents: Word 97–2003 binary documents and RTF are read with AppKit's document
+readers, and web pages saved as `.doc` (HTML or MHTML, as Confluence's "Export
+to Word" produces) are read from their HTML, including embedded pictures.
+Password protected Word documents cannot be opened, and charts are reported
+with a warning rather than converted.
+
+Legacy `.xls` workbooks are not supported; save them as `.xlsx` first.
 Optical character recognition is out of scope: PDFs containing only scanned
 images are reported rather than converted.
 
@@ -82,6 +90,7 @@ always behaves the same way.
 | Insert page breaks      | off     | Emits `---` between pages                   |
 | Collapse blank lines    | on      | Keeps output compact for tokenisers         |
 | Reconstruct tables      | on      | Rebuilds tables as Markdown tables          |
+| Maximum rows per sheet  | 1000    | Cuts each Excel sheet; 0 means no limit     |
 
 ## Testing
 
@@ -138,3 +147,23 @@ into one.
 Known limits: tables using merged cells are usually left as prose, and a cell
 whose text wrapped mid word gains a space at the break, so "breakStart" may
 appear as "breakSta rt".
+
+## Excel workbooks
+
+Workbooks are read directly from their Open XML package, so no spreadsheet
+application is involved. Each visible sheet becomes a heading and a Markdown
+table whose first row is the header:
+
+```
+makeit-markdown budget.xlsx
+makeit-markdown budget.xlsx --max-rows 0     # keep every row
+```
+
+Formulas show the value Excel last calculated, since nothing is recalculated.
+Dates are written as `YYYY-MM-DD`, percentages keep their format's precision,
+and other numbers are shown without floating point noise. Hidden sheets and
+empty rows are skipped. Merged cells show their value in the top left cell.
+
+Each sheet is cut after `--max-rows` rows below the header (1,000 by default)
+and a warning says how many were left out. Charts and pictures are not
+converted; a warning names the sheets that hold them.

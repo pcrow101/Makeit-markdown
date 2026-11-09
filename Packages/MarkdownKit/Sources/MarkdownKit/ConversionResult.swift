@@ -13,6 +13,8 @@ public struct ConversionWarning: Sendable, Equatable, Codable {
         case encryptedDocument
         /// A feature of the source document could not be represented.
         case unsupportedFeature
+        /// Part of the content was left out because it exceeded a limit.
+        case truncatedContent
     }
 
     public let kind: Kind

@@ -83,6 +83,20 @@ struct InputResolverTests {
         #expect(names == ["a.pdf", "b.docx"])
     }
 
+    @Test("Office lock files are not treated as documents")
+    func lockFilesAreSkipped() throws {
+        let scratch = try PDFFixture.Scratch()
+        _ = try touch("report.xlsx", in: scratch.directory)
+        _ = try touch("~$report.xlsx", in: scratch.directory)
+
+        let resolved = try resolver.resolve(
+            paths: [scratch.directory.path(percentEncoded: false)],
+            recursive: false
+        )
+
+        #expect(resolved.map(\.lastPathComponent) == ["report.xlsx"])
+    }
+
     @Test("Subdirectories are ignored unless the search is recursive")
     func nonRecursiveSearch() throws {
         let scratch = try PDFFixture.Scratch()

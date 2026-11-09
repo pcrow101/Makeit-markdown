@@ -16,10 +16,6 @@ public struct ConverterRegistry: Sendable {
     }
 
     /// A registry containing every converter that ships with this release.
-    ///
-    /// Converters for formats that have not shipped yet are included so that
-    /// they are advertised in file pickers and produce an explanatory error
-    /// rather than a generic "unsupported format" message.
     public static let standard = ConverterRegistry(converters: [
         PDFConverter(),
         DOCXConverter(),

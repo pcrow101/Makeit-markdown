@@ -53,6 +53,12 @@ public enum DocumentBlock: Sendable, Equatable {
     ///
     /// `path` is the Markdown-ready (percent-encoded) relative path.
     case image(path: String, altText: String)
+
+    /// Preformatted text, such as source code, whose line breaks matter.
+    case codeBlock(text: String)
+
+    /// A quotation set apart from the body text.
+    case blockQuote(text: String)
 }
 
 /// Recovers document structure from positioned text lines.

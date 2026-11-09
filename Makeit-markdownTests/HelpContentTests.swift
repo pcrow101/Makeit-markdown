@@ -72,7 +72,7 @@ struct HelpContentTests {
     func commandLineFlagsDocumented() {
         let body = HelpTopic.commandLine.body
         for flag in ["--output", "--stdout", "--recursive", "--overwrite",
-                     "--no-tables", "--no-graphics", "--quiet"] {
+                     "--no-tables", "--no-graphics", "--max-rows", "--quiet"] {
             #expect(body.contains(flag), "\(flag) is not documented")
         }
     }
@@ -106,5 +106,21 @@ struct HelpContentTests {
         #expect(ImageZoom.clamped(0.2) == 1)
         #expect(ImageZoom.clamped(100) == ImageZoom.range.upperBound)
         #expect(ImageZoom.zoomedIn(1) == ImageZoom.step)
+    }
+
+    @Test("The formats page lists PDF, Excel and Word as available")
+    func formatsAreDocumented() {
+        let body = HelpTopic.supportedFormats.body
+
+        #expect(body.contains("**Excel**"))
+        #expect(body.contains(".xlsx"))
+        #expect(body.contains("**Word** (`.docx`, `.doc`)"))
+        #expect(!body.contains("**Planned**"))
+    }
+
+    @Test("The options page explains the spreadsheet row limit")
+    func rowLimitIsDocumented() {
+        #expect(HelpTopic.conversionOptions.body.contains("Maximum rows per sheet"))
+        #expect(HelpTopic.troubleshooting.body.contains("--max-rows"))
     }
 }

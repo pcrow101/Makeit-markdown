@@ -19,6 +19,7 @@ final class ConversionSettings {
         static let normalizeWhitespace = "conversion.normalizeWhitespace"
         static let stripRepeatedPageFurniture = "conversion.stripRepeatedPageFurniture"
         static let extractGraphics = "conversion.extractGraphics"
+        static let maxSpreadsheetRows = "conversion.maxSpreadsheetRows"
     }
 
     private let defaults: UserDefaults
@@ -53,6 +54,11 @@ final class ConversionSettings {
         didSet { defaults.set(extractGraphics, forKey: Key.extractGraphics) }
     }
 
+    /// The most rows converted from each spreadsheet sheet; zero means no limit.
+    var maxSpreadsheetRows: Int {
+        didSet { defaults.set(maxSpreadsheetRows, forKey: Key.maxSpreadsheetRows) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
@@ -64,7 +70,8 @@ final class ConversionSettings {
             Key.extractTables: fallback.extractTables,
             Key.normalizeWhitespace: fallback.normalizeWhitespace,
             Key.stripRepeatedPageFurniture: fallback.stripRepeatedPageFurniture,
-            Key.extractGraphics: fallback.extractGraphics
+            Key.extractGraphics: fallback.extractGraphics,
+            Key.maxSpreadsheetRows: fallback.maxSpreadsheetRows
         ])
 
         detectHeadings = defaults.bool(forKey: Key.detectHeadings)
@@ -74,6 +81,7 @@ final class ConversionSettings {
         normalizeWhitespace = defaults.bool(forKey: Key.normalizeWhitespace)
         stripRepeatedPageFurniture = defaults.bool(forKey: Key.stripRepeatedPageFurniture)
         extractGraphics = defaults.bool(forKey: Key.extractGraphics)
+        maxSpreadsheetRows = defaults.integer(forKey: Key.maxSpreadsheetRows)
     }
 
     /// The settings expressed as options for ``MarkdownKit``.
@@ -85,7 +93,8 @@ final class ConversionSettings {
             extractTables: extractTables,
             normalizeWhitespace: normalizeWhitespace,
             stripRepeatedPageFurniture: stripRepeatedPageFurniture,
-            extractGraphics: extractGraphics
+            extractGraphics: extractGraphics,
+            maxSpreadsheetRows: max(0, maxSpreadsheetRows)
         )
     }
 
@@ -99,5 +108,6 @@ final class ConversionSettings {
         normalizeWhitespace = fallback.normalizeWhitespace
         stripRepeatedPageFurniture = fallback.stripRepeatedPageFurniture
         extractGraphics = fallback.extractGraphics
+        maxSpreadsheetRows = fallback.maxSpreadsheetRows
     }
 }
